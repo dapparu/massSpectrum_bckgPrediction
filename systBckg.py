@@ -15,9 +15,10 @@ ROOT.gROOT.SetBatch(True)
 tdrstyle.setTDRStyle()
 
 CMS_lumi.lumi_sqrtS = "13 TeV"
-CMS_lumi.lumi_13TeV = "2018 - 59.7 fb^{-1}"
+#CMS_lumi.lumi_13TeV = "2018 - 59.7 fb^{-1}"
+CMS_lumi.lumi_13TeV = "2017 - 41.5 fb^{-1}"
 CMS_lumi.writeExtraText = True
-CMS_lumi.extraText = "In progress"
+CMS_lumi.extraText = "Internal"
 #CMS_lumi.cmsText=""
 iPos = 0
 if( iPos==0 ): CMS_lumi.relPosX = 0.12
@@ -27,7 +28,7 @@ def scale(h1):
     h1.Scale(1./h1.Integral())
     return h1
 
-def ratioHisto(h1,h2):
+def ratioHisto(h2,h1):
     h3=h1.Clone()
     h3.Divide(h2)
     return h3
@@ -38,8 +39,8 @@ def ratioInt(h1,h2):
     for i in range(0,h1.GetNbinsX()+1):
         e1=ROOT.Double(0.0)
         e2=ROOT.Double(0.0)
-        a=h1.IntegralAndError(i,h1.GetNbinsX()+1,e1,"")
-        b=h2.IntegralAndError(i,h1.GetNbinsX()+1,e2,"")
+        a=h1.IntegralAndError(i,h1.GetNbinsX(),e1,"")
+        b=h2.IntegralAndError(i,h1.GetNbinsX(),e2,"")
         if b != 0 and a != 0:
             c=math.sqrt((e1*e1)/(a*a)+(e2*e2)/(b*b))*a/b
             h3.SetBinContent(i,a/b)
@@ -80,7 +81,7 @@ def lowEdge(h1):
 def statErr(h1,name):
     statErr=h1.Clone()
     statErr.SetName(name)
-    for i in range (0,statErr.GetNbinsX()+1):
+    for i in range (1,statErr.GetNbinsX()):
         if statErr.GetBinContent(i)>0:
             statErr.SetBinContent(i,statErr.GetBinError(i)/statErr.GetBinContent(i))
         else:
@@ -92,8 +93,8 @@ def statErrRInt(h1,name):
     statErr.SetName(name)
     c=ROOT.Double(0.0)
     e=ROOT.Double(0.0)
-    for i in range (0,statErr.GetNbinsX()+1):
-        c=h1.IntegralAndError(i,h1.GetNbinsX()+1,e,"")
+    for i in range (1,statErr.GetNbinsX()):
+        c=h1.IntegralAndError(i,h1.GetNbinsX(),e,"")
         if e>0:
             statErr.SetBinContent(i,e/c)
         else:
@@ -113,12 +114,19 @@ def systMass(nominal,down,up,name,typec,binned,mini=0):
     for i in range (0,res.GetNbinsX()+1):
         r1=ra1.GetBinContent(i)
         r2=ra2.GetBinContent(i)
+        if(binned==1):
+            print up.GetName(),res.GetBinLowEdge(i),r1
         s1=abs(1-r1)
         s2=abs(1-r2)
+        s1=abs(r1-1)
+        s2=abs(r2-1)
+
         if (typec==0):
             m=max(s1,s2)
             if (mini==1):
                 m=min(s1,s2)
+            elif (mini==2):
+                m/=2
         elif (typec==1):
             m=(s1+s2)/2.
         res.SetBinContent(i,100*m)
@@ -143,6 +151,7 @@ def setColorAndMarker(h1,color,markerstyle):
 
 def superposition(h1,h2,h3,name):
     c=TCanvas()
+
     h1=setColorAndMarker(h1,20,20)
     h2=setColorAndMarker(h2,30,21)
     h3=setColorAndMarker(h3,46,22)
@@ -204,9 +213,9 @@ def plotter_(predNominal,predPullU,legNom,leg1,outDir,outTitle):
     predPullU.Draw("same")
 
     
-    leg=TLegend(0.82,0.9,0.4,0.6);
-    leg.AddEntry(predNominal,legNom,"PE1");
-    leg.AddEntry(predPullU,leg1,"PE1");
+    leg=TLegend(0.82,0.9,0.4,0.6)
+    leg.AddEntry(predNominal,legNom,"PE1")
+    leg.AddEntry(predPullU,leg1,"PE1")
 
     leg.Draw("same")
     
@@ -339,16 +348,16 @@ def plotter(predNominal,predPullD,predPullU,legNom,leg1,leg2,outDir,outTitle):
     predNominal=setColorAndMarker(predNominal,1,20)
     predNominal.GetXaxis().SetRangeUser(0,max_mass)
     predNominal.GetYaxis().SetRangeUser(min_entries,max_entries)
-    predNominal.SetTitle(";Mass (GeV);Tracks / bin width")
+    predNominal.SetTitle(";Mass (GeV);Tracks")
     predNominal.GetYaxis().SetTitleSize(0.07)
     predNominal.GetYaxis().SetLabelSize(0.05)
-    predNominal.Draw()
+    predNominal.Draw("P")
 
     predPullD=setColorAndMarker(predPullD,38,21)
-    predPullD.Draw("same")
+    predPullD.Draw("P,same")
 
     predPullU=setColorAndMarker(predPullU,46,21)
-    predPullU.Draw("same")
+    predPullU.Draw("P,same")
 
     
     leg=TLegend(0.82,0.9,0.4,0.6)
@@ -380,7 +389,7 @@ def plotter(predNominal,predPullD,predPullU,legNom,leg1,leg2,outDir,outTitle):
     frameR2.SetTitle("")
     frameR2.SetStats(0)
     frameR2.GetXaxis().SetTitle("")
-    frameR2.GetYaxis().SetTitle("Ratio #int_{m}^{#infty}")
+    frameR2.GetYaxis().SetTitle("RatioR")
     frameR2.GetXaxis().SetRangeUser(0,max_mass)
     frameR2.SetMaximum(1.5)
     frameR2.SetMinimum(0.5)
@@ -413,10 +422,13 @@ def plotter(predNominal,predPullD,predPullU,legNom,leg1,leg2,outDir,outTitle):
     LineAt0p8.SetLineColor(1)
     LineAt0p8.Draw("same")
 
-    ratioInt1=ratioInt(predNominal,predPullD)
-    ratioInt2=ratioInt(predNominal,predPullU)
-    ratioInt1.Draw("E0 same")
-    ratioInt2.Draw("E0 same")
+    ratioInt1=ratioInt(predPullD,predNominal)
+    ratioInt1=setColorAndMarker(ratioInt1,38,21)
+    ratioInt2=ratioInt(predPullU,predNominal)
+    ratioInt2=setColorAndMarker(ratioInt2,46,21)
+    
+    ratioInt1.Draw("P E0 same")
+    ratioInt2.Draw("P E0 same")
 
     ofile.cd()
     ratioInt1.Write()
@@ -426,7 +438,7 @@ def plotter(predNominal,predPullD,predPullU,legNom,leg1,leg2,outDir,outTitle):
     t3.cd()
 
     frameR3=frameR2.Clone()
-    frameR3.GetYaxis().SetTitle("#frac{nominal}{var}")
+    frameR3.GetYaxis().SetTitle("#frac{var}{nominal}")
     frameR3.GetXaxis().SetRangeUser(0,max_mass)
     frameR3.Draw("AXIS")
     frameR3.GetXaxis().SetTitle("Mass (GeV)")
@@ -436,17 +448,16 @@ def plotter(predNominal,predPullD,predPullU,legNom,leg1,leg2,outDir,outTitle):
     LineAt1p2.Draw("same")
     LineAt0p8.Draw("same")
     
-    predNominalCl1=predNominal.Clone()
-    predNominalCl2=predNominal.Clone()
-    predNominalCl1.Divide(predPullD)
-    predNominalCl2.Divide(predPullU)
+    predPullDCl=predPullD.Clone()
+    predPullUCl=predPullU.Clone()
+    predPullDCl.Divide(predNominal)
+    predPullUCl.Divide(predNominal)
+    
+    predPullDCl=setColorAndMarker(predPullDCl,38,21)
+    predPullDCl.Draw("P E0 same")
 
-    predNominalCl1=setColorAndMarker(predNominalCl1,38,21)
-    predNominalCl1.Draw("E0 same")
-
-    predNominalCl2=setColorAndMarker(predNominalCl2,46,21)
-    predNominalCl2.Draw("E0 same")
-
+    predPullUCl=setColorAndMarker(predPullUCl,46,21)
+    predPullUCl.Draw("P E0 same")
     CMS_lumi.CMS_lumi(c1, iPeriod, iPos)
 
     cmd='mkdir -p '+outDir
@@ -456,31 +467,33 @@ def plotter(predNominal,predPullD,predPullU,legNom,leg1,leg2,outDir,outTitle):
     c1.SaveAs(outDir+"/"+outTitle+".root")
     c1.SaveAs(outDir+"/"+outTitle+".C")
 
-def plotSummary(syst_stat,syst_eta,syst_ih,syst_p,syst_corrDeDx,syst_corrP,syst_fitDeDx_par1,syst_fitDeDx_par2,syst_fitP,sysTot,xtitle,outTitle,label_lowEdge=0):
+def plotSummary(syst_stat,syst_eta,syst_ih,syst_p,syst_corrDeDx,syst_corrP,syst_fitDeDx,syst_fitP,syst_corrBias,sysTot,xtitle,outTitle,labelRegion,label_lowEdge=0):
     syst_stat=lowEdge(syst_stat)
     syst_eta=lowEdge(syst_eta)
     syst_ih=lowEdge(syst_ih)
     syst_p=lowEdge(syst_p)
     syst_corrDeDx=lowEdge(syst_corrDeDx)
     syst_corrP=lowEdge(syst_corrP)
-    syst_fitDeDx_par1=lowEdge(syst_fitDeDx_par1)
-    syst_fitDeDx_par2=lowEdge(syst_fitDeDx_par2)
     syst_fitP=lowEdge(syst_fitP)
+    syst_fitDeDx=lowEdge(syst_fitDeDx)
+    syst_corrBias=lowEdge(syst_corrBias)
     sysTot=lowEdge(sysTot)
 
     c2=TCanvas()
 
-    #c2.SetLogy()
+    c2.SetLogy()
     c2.SetGrid()
-    syst_stat.SetMinimum(0)
-    syst_stat.SetMaximum(100)
+    syst_stat.SetMinimum(1)
+    syst_stat.SetMaximum(500)
     syst_stat.GetXaxis().SetTitle(xtitle)
     syst_stat.GetYaxis().SetTitle("Systematic Uncertainty [%]")
     syst_stat.GetXaxis().SetNdivisions(510)
     syst_stat.GetXaxis().SetLabelFont(43) #give the font size in pixel (instead of fraction)
-    syst_stat.GetXaxis().SetLabelSize(20) #font size
+    syst_stat.GetXaxis().SetLabelSize(16) #font size
+    syst_stat.GetXaxis().SetTitleSize(0.04) #font size
     syst_stat.GetYaxis().SetLabelFont(43) #give the font size in pixel (instead of fraction)
-    syst_stat.GetYaxis().SetLabelSize(20) #font size
+    syst_stat.GetYaxis().SetLabelSize(16) #font size
+    syst_stat.GetYaxis().SetTitleSize(0.04) #font size
 
     syst_stat.GetXaxis().SetRangeUser(0,2000)
 
@@ -490,12 +503,12 @@ def plotSummary(syst_stat,syst_eta,syst_ih,syst_p,syst_corrDeDx,syst_corrP,syst_
     syst_p=setColorAndMarker(syst_p,46,23)
     syst_corrDeDx=setColorAndMarker(syst_corrDeDx,43,43)
     syst_corrP=setColorAndMarker(syst_corrP,45,45)
-    syst_fitDeDx_par1=setColorAndMarker(syst_fitDeDx_par1,39,29)
-    syst_fitDeDx_par2=setColorAndMarker(syst_fitDeDx_par2,40,30)
     syst_fitP=setColorAndMarker(syst_fitP,47,47)
+    syst_fitDeDx=setColorAndMarker(syst_fitDeDx,39,29)
+    syst_corrBias=setColorAndMarker(syst_corrBias,34,49)
     sysTot=setColorAndMarker(sysTot,28,34)
 
-    leg2=TLegend(0.2,0.5,0.7,0.9)
+    leg2=TLegend(0.17,0.7,0.4,0.93)
     leg2.AddEntry(sysTot,"Total","PE1")
     leg2.AddEntry(syst_stat,"Stat.","PE1")
     leg2.AddEntry(syst_eta,"#eta binning","PE1")
@@ -503,9 +516,9 @@ def plotSummary(syst_stat,syst_eta,syst_ih,syst_p,syst_corrDeDx,syst_corrP,syst_
     leg2.AddEntry(syst_p,"p binning","PE1")
     leg2.AddEntry(syst_corrDeDx,"Template extraction I_{h}","PE1")
     leg2.AddEntry(syst_corrP,"Template extraction p","PE1")
-    leg2.AddEntry(syst_fitDeDx_par1,"dEdx fit #mu","PE1")
-    leg2.AddEntry(syst_fitDeDx_par2,"dEdx fit #sigma","PE1")
     leg2.AddEntry(syst_fitP,"p fit","PE1")
+    leg2.AddEntry(syst_fitDeDx,"I_{h} fit","PE1")
+    leg2.AddEntry(syst_corrBias,"Bias correction ("+labelRegion+")","PE1")
     
     syst_stat.Draw("AP")
     leg2.Draw("same")
@@ -514,9 +527,9 @@ def plotSummary(syst_stat,syst_eta,syst_ih,syst_p,syst_corrDeDx,syst_corrP,syst_
     syst_p.Draw("P")
     syst_corrDeDx.Draw("P")
     syst_corrP.Draw("P")
-    syst_fitDeDx_par1.Draw("P")
-    syst_fitDeDx_par2.Draw("P")
     syst_fitP.Draw("P")
+    syst_fitDeDx.Draw("P")
+    syst_corrBias.Draw("P")
     sysTot.Draw("P")
     
 
@@ -531,8 +544,7 @@ def plotSummary(syst_stat,syst_eta,syst_ih,syst_p,syst_corrDeDx,syst_corrP,syst_
 
 def allSet(h,sizeRebinning,rebinning,st):
     h=h.Rebin(sizeRebinning,st,rebinning)
-    h=overflowInLastBin(h)
-    h=binWidth(h)
+    h.Scale(1./h.Integral())
     return h
 
 def systMassAll(nominal,down,up,st,mini=0):
@@ -542,29 +554,41 @@ def systMassAll(nominal,down,up,st,mini=0):
     res_binned_mean=systMass(nominal,down,up,st,1,1,mini)
     return res, res_mean, res_binned, res_binned_mean
 
-directory="/opt/sbg/cms/ui14_data2/dapparu/CMSSW_10_6_27/src/BackgroundStudies/tmpOut/"
+def BiasCorrection(h1,a_,b_):
+    h=h1.Clone()
+    for i in range (0,h.GetNbinsX()+1):
+        mass = h.GetBinLowEdge(i)
+        if(mass<25): continue
+        h.SetBinContent(i,h.GetBinContent(i)*(a_*mass+b_))
+    return h
 
-inputNominal=directory+"outfile_SingleMuon_TkOnly_All2018_44p0_AllCategories_cutIndex3_rebinEta10_rebinIh20_rebinP4_rebinMass1_analysed_sampling5_nPE-200_toCopy_nominal.root"
-inputEtaD=directory+"outfile_SingleMuon_TkOnly_All2018_44p0_AllCategories_cutIndex3_rebinEta20_rebinIh20_rebinP4_rebinMass1_analysed_sampling5_nPE-200.root"
-inputEtaU=directory+"outfile_SingleMuon_TkOnly_All2018_44p0_AllCategories_cutIndex3_rebinEta5_rebinIh20_rebinP4_rebinMass1_analysed_sampling5_nPE-200.root"
-inputIhD=directory+"outfile_SingleMuon_TkOnly_All2018_44p0_AllCategories_cutIndex3_rebinEta10_rebinIh40_rebinP4_rebinMass1_analysed_sampling5_nPE-200.root"
-inputIhU=directory+"outfile_SingleMuon_TkOnly_All2018_44p0_AllCategories_cutIndex3_rebinEta10_rebinIh10_rebinP4_rebinMass1_analysed_sampling5_nPE-200.root"
-inputPD=directory+"outfile_SingleMuon_TkOnly_All2018_44p0_AllCategories_cutIndex3_rebinEta10_rebinIh20_rebinP8_rebinMass1_analysed_sampling5_nPE-200.root"
-inputPU=directory+"outfile_SingleMuon_TkOnly_All2018_44p0_AllCategories_cutIndex3_rebinEta10_rebinIh20_rebinP2_rebinMass1_analysed_sampling5_nPE-200.root"
-inputCorrDeDxDown=directory+"outfile_SingleMuon_TkOnly_All2018_44p0_AllCategories_cutIndex3_rebinEta10_rebinIh20_rebinP4_rebinMass1_analysed_dedxDown_sampling5_nPE-200.root"
-inputCorrDeDxUp=directory+"outfile_SingleMuon_TkOnly_All2018_44p0_AllCategories_cutIndex3_rebinEta10_rebinIh20_rebinP4_rebinMass1_analysed_dedxUp_sampling5_nPE-200.root"
-inputCorrPDown=directory+"outfile_SingleMuon_TkOnly_All2018_44p0_AllCategories_cutIndex3_rebinEta10_rebinIh20_rebinP4_rebinMass1_analysed_momDown_sampling5_nPE-200.root"
-inputCorrPUp=directory+"outfile_SingleMuon_TkOnly_All2018_44p0_AllCategories_cutIndex3_rebinEta10_rebinIh20_rebinP4_rebinMass1_analysed_momUp_sampling5_nPE-200.root"
-inputFitDeDxPar1Down=directory+"outfile_SingleMuon_TkOnly_All2018_44p0_AllCategories_cutIndex3_rebinEta10_rebinIh20_rebinP4_rebinMass1_analysed_dedxFitPar1Down_sampling5_nPE-200.root"
-inputFitDeDxPar1Up=directory+"outfile_SingleMuon_TkOnly_All2018_44p0_AllCategories_cutIndex3_rebinEta10_rebinIh20_rebinP4_rebinMass1_analysed_dedxFitPar1Up_sampling5_nPE-200.root"
-inputFitDeDxPar2Down=directory+"outfile_SingleMuon_TkOnly_All2018_44p0_AllCategories_cutIndex3_rebinEta10_rebinIh20_rebinP4_rebinMass1_analysed_dedxFitPar2Down_sampling5_nPE-200.root"
-inputFitDeDxPar2Up=directory+"outfile_SingleMuon_TkOnly_All2018_44p0_AllCategories_cutIndex3_rebinEta10_rebinIh20_rebinP4_rebinMass1_analysed_dedxFitPar2Up_sampling5_nPE-200.root"
-inputFitPPar2Down=directory+"outfile_SingleMuon_TkOnly_All2018_44p0_AllCategories_cutIndex3_rebinEta10_rebinIh20_rebinP4_rebinMass1_analysed_momFitPar2Down_sampling5_nPE-200.root"
-inputFitPPar2Up=directory+"outfile_SingleMuon_TkOnly_All2018_44p0_AllCategories_cutIndex3_rebinEta10_rebinIh20_rebinP4_rebinMass1_analysed_momFitPar2Up_sampling5_nPE-200.root"
-inputFitPPar3Down=directory+"outfile_SingleMuon_TkOnly_All2018_44p0_AllCategories_cutIndex3_rebinEta10_rebinIh20_rebinP4_rebinMass1_analysed_momFitPar3Down_sampling5_nPE-200.root"
-inputFitPPar3Up=directory+"outfile_SingleMuon_TkOnly_All2018_44p0_AllCategories_cutIndex3_rebinEta10_rebinIh20_rebinP4_rebinMass1_analysed_momFitPar3Up_sampling5_nPE-200.root"
+directory="/opt/sbg/cms/ui3_data1/dapparu/HSCP/Production/"
 
-inputFitP=directory+"outfile_SingleMuon_TkOnly_All2018_44p0_AllCategories_cutIndex3_rebinEta10_rebinIh20_rebinP4_rebinMass1_analysed_momFitErrorDown_sampling5_nPE-10.root"
+year='2018'
+codeVersion='73p3_v4'
+nPE='200'
+endLabel='_21april_SR3'
+#endLabel='_19april'
+
+inputNominal=directory+"crab_Analysis_SingleMuon_Run"+year+"_CodeV"+codeVersion+"_cutIndex3_rebinEta4_rebinIh4_rebinP2_rebinMass1_nPE"+nPE+endLabel+".root"
+
+inputEtaD=directory+"crab_Analysis_SingleMuon_Run"+year+"_CodeV"+codeVersion+"_cutIndex3_rebinEta2_rebinIh4_rebinP2_rebinMass1_nPE"+nPE+endLabel+".root"
+inputEtaU=directory+"crab_Analysis_SingleMuon_Run"+year+"_CodeV"+codeVersion+"_cutIndex3_rebinEta8_rebinIh4_rebinP2_rebinMass1_nPE"+nPE+endLabel+".root"
+
+inputIhD=directory+"crab_Analysis_SingleMuon_Run"+year+"_CodeV"+codeVersion+"_cutIndex3_rebinEta4_rebinIh2_rebinP2_rebinMass1_nPE"+nPE+endLabel+".root"
+inputIhU=directory+"crab_Analysis_SingleMuon_Run"+year+"_CodeV"+codeVersion+"_cutIndex3_rebinEta4_rebinIh8_rebinP2_rebinMass1_nPE"+nPE+endLabel+".root"
+inputPD=directory+"crab_Analysis_SingleMuon_Run"+year+"_CodeV"+codeVersion+"_cutIndex3_rebinEta4_rebinIh4_rebinP1_rebinMass1_nPE"+nPE+endLabel+".root"
+inputPU=directory+"crab_Analysis_SingleMuon_Run"+year+"_CodeV"+codeVersion+"_cutIndex3_rebinEta4_rebinIh4_rebinP4_rebinMass1_nPE"+nPE+endLabel+".root"
+inputCorrDeDxDown=directory+"crab_Analysis_SingleMuon_Run"+year+"_CodeV"+codeVersion+"_cutIndex3_rebinEta4_rebinIh4_rebinP2_rebinMass1_corrTemplateIh_nPE"+nPE+endLabel+".root"
+inputCorrDeDxUp=directory+"crab_Analysis_SingleMuon_Run"+year+"_CodeV"+codeVersion+"_cutIndex3_rebinEta4_rebinIh4_rebinP2_rebinMass1_corrTemplateIh_nPE"+nPE+endLabel+".root"
+inputCorrPDown=directory+"crab_Analysis_SingleMuon_Run"+year+"_CodeV"+codeVersion+"_cutIndex3_rebinEta4_rebinIh4_rebinP2_rebinMass1_corrTemplateP_nPE"+nPE+endLabel+".root"
+inputCorrPUp=directory+"crab_Analysis_SingleMuon_Run"+year+"_CodeV"+codeVersion+"_cutIndex3_rebinEta4_rebinIh4_rebinP2_rebinMass1_corrTemplateP_nPE"+nPE+endLabel+".root"
+
+inputFitPUp=directory+"crab_Analysis_SingleMuon_Run"+year+"_CodeV"+codeVersion+"_cutIndex3_rebinEta4_rebinIh4_rebinP2_rebinMass1_fitPUp_nPE"+nPE+endLabel+".root"
+inputFitPDown=directory+"crab_Analysis_SingleMuon_Run"+year+"_CodeV"+codeVersion+"_cutIndex3_rebinEta4_rebinIh4_rebinP2_rebinMass1_fitPDown_nPE"+nPE+endLabel+".root"
+inputFitDeDxUp=directory+"crab_Analysis_SingleMuon_Run"+year+"_CodeV"+codeVersion+"_cutIndex3_rebinEta4_rebinIh4_rebinP2_rebinMass1_fitIhUp_nPE"+nPE+endLabel+".root"
+inputFitDeDxDown=directory+"crab_Analysis_SingleMuon_Run"+year+"_CodeV"+codeVersion+"_cutIndex3_rebinEta4_rebinIh4_rebinP2_rebinMass1_fitIhDown_nPE"+nPE+endLabel+".root"
+
 
 ifileNominal=TFile(inputNominal)
 ifileEtaD=TFile(inputEtaD)
@@ -577,29 +601,21 @@ ifileCorrDeDxDown=TFile(inputCorrDeDxDown)
 ifileCorrDeDxUp=TFile(inputCorrDeDxUp)
 ifileCorrPDown=TFile(inputCorrPDown)
 ifileCorrPUp=TFile(inputCorrPUp)
-
-ifileFitDeDxPar1Down=TFile(inputFitDeDxPar1Down)
-ifileFitDeDxPar1Up=TFile(inputFitDeDxPar1Up)
-ifileFitDeDxPar2Down=TFile(inputFitDeDxPar2Down)
-ifileFitDeDxPar2Up=TFile(inputFitDeDxPar2Up)
-ifileFitPPar2Down=TFile(inputFitPPar2Down)
-ifileFitPPar2Up=TFile(inputFitPPar2Up)
-ifileFitPPar3Down=TFile(inputFitPPar3Down)
-ifileFitPPar3Up=TFile(inputFitPPar3Up)
-ifileFitP=TFile(inputFitP)
+ifileFitPUp=TFile(inputFitPUp)
+ifileFitPDown=TFile(inputFitPDown)
+ifileFitDeDxUp=TFile(inputFitDeDxUp)
+ifileFitDeDxDown=TFile(inputFitDeDxDown)
 
 
 plotType="mass_predBC_"
-#region="50ias90_rebinned"
-region="90ias100"
+region="999ias100"
 
-oDir="31janv_systematics_v1/"
+oDir="25april_systematics_"+year+"_"+region+"/"
 cmd='mkdir -p '+oDir
 os.system(cmd)
 outTitle="syst"
 
 ofile=TFile(oDir+outTitle+".root","RECREATE")
-
 
 predNominal_def=ifileNominal.Get(plotType+region)
 predEtaD=ifileEtaD.Get(plotType+region)
@@ -612,164 +628,169 @@ predCorrDeDxDown=ifileCorrDeDxDown.Get(plotType+region)
 predCorrDeDxUp=ifileCorrDeDxUp.Get(plotType+region)
 predCorrPDown=ifileCorrPDown.Get(plotType+region)
 predCorrPUp=ifileCorrPUp.Get(plotType+region)
-predFitDeDxPar1Down=ifileFitDeDxPar1Down.Get(plotType+region)
-predFitDeDxPar1Up=ifileFitDeDxPar1Up.Get(plotType+region)
-predFitDeDxPar2Down=ifileFitDeDxPar2Down.Get(plotType+region)
-predFitDeDxPar2Up=ifileFitDeDxPar2Up.Get(plotType+region)
-predFitPPar2Down=ifileFitPPar2Down.Get(plotType+region)
-predFitPPar2Up=ifileFitPPar2Up.Get(plotType+region)
-predFitPPar3Down=ifileFitPPar3Down.Get(plotType+region)
-predFitPPar3Up=ifileFitPPar3Up.Get(plotType+region)
 
-predFitPNominal=ifileFitP.Get(plotType+region+"_nominal")
-predFitPDown=ifileFitP.Get(plotType+region+"_down")
-predFitPUp=ifileFitP.Get(plotType+region+"_up")
+predFitPUp=ifileFitPUp.Get(plotType+region)
+predFitPDown=ifileFitPDown.Get(plotType+region)
+predFitDeDxUp=ifileFitDeDxUp.Get(plotType+region)
+predFitDeDxDown=ifileFitDeDxDown.Get(plotType+region)
 
-rebinning=array.array('d',[0,20,40,60,80,100,120,140,160,180,200,220,240,260,280,300,320,340,360,380,400,450,500,550,600,700,800,900,1000,1100,1200,1400,2000])
+rebinning=array.array('d',[0.,20.,40.,60.,80.,100.,120.,140.,160.,180.,200.,220.,240.,260.,280.,300.,320.,340.,360.,380.,405.,435.,475.,525.,585.,660.,755.,875.,1025.,1210.,1440.,1730.,2000.])
+
 sizeRebinning=len(rebinning)-1
 
-predNominal_def=predNominal_def.Rebin(sizeRebinning,"nominal_new",rebinning)
-predEtaD=predEtaD.Rebin(sizeRebinning,"etaD_new",rebinning)
-predEtaU=predEtaU.Rebin(sizeRebinning,"etaU_new",rebinning)
-predIhD=predIhD.Rebin(sizeRebinning,"ihD_new",rebinning)
-predIhU=predIhU.Rebin(sizeRebinning,"ihU_new",rebinning)
-predPD=predPD.Rebin(sizeRebinning,"pD_new",rebinning)
-predPU=predPU.Rebin(sizeRebinning,"pU_new",rebinning)
-predCorrDeDxDown=predCorrDeDxDown.Rebin(sizeRebinning,"corrDeDxDown_new",rebinning)
-predCorrDeDxUp=predCorrDeDxUp.Rebin(sizeRebinning,"corrDeDxUp_new",rebinning)
-predCorrPDown=predCorrPDown.Rebin(sizeRebinning,"corrPDown_new",rebinning)
-predCorrPUp=predCorrPUp.Rebin(sizeRebinning,"corrPUp_new",rebinning)
-
-predNominal_def=overflowInLastBin(predNominal_def)
-predEtaD=overflowInLastBin(predEtaD)
-predEtaU=overflowInLastBin(predEtaU)
-predIhD=overflowInLastBin(predIhD)
-predIhU=overflowInLastBin(predIhU)
-predPD=overflowInLastBin(predPD)
-predPU=overflowInLastBin(predPU)
-predCorrDeDxDown=overflowInLastBin(predCorrDeDxDown)
-predCorrDeDxUp=overflowInLastBin(predCorrDeDxUp)
-predCorrPDown=overflowInLastBin(predCorrPDown)
-predCorrPUp=overflowInLastBin(predCorrPUp)
-
-predNominal_def=binWidth(predNominal_def)
-predEtaD=binWidth(predEtaD)
-predEtaU=binWidth(predEtaU)
-predIhD=binWidth(predIhD)
-predIhU=binWidth(predIhU)
-predPD=binWidth(predPD)
-predPU=binWidth(predPU)
-predCorrDeDxDown=binWidth(predCorrDeDxDown)
-predCorrDeDxUp=binWidth(predCorrDeDxUp)
-predCorrPDown=binWidth(predCorrPDown)
-predCorrPUp=binWidth(predCorrPUp)
+predNominal_def=allSet(predNominal_def,sizeRebinning,rebinning,"nominal_def")
 
 syst_stat=statErrRInt(predNominal_def,"Stat")
 syst_stat_binned=statErr(predNominal_def,"Stat")
 
-syst_eta=systMass(predNominal_def,predEtaD,predEtaU,"Eta",0,0,1)
-syst_ih=systMass(predNominal_def,predIhD,predIhU,"Ih",0,0)
-syst_p=systMass(predNominal_def,predPD,predPU,"P",0,0)
-syst_corrDeDx=systMass(predNominal_def,predCorrDeDxDown,predCorrDeDxUp,"extraction_Ih",0,0)
-syst_corrP=systMass(predNominal_def,predCorrPDown,predCorrPUp,"extraction_P",0,0)
 
-syst_eta_mean=systMass(predNominal_def,predEtaD,predEtaU,"Eta_mean",1,0)
-syst_ih_mean=systMass(predNominal_def,predIhD,predIhU,"Ih_mean",1,0)
-syst_p_mean=systMass(predNominal_def,predPD,predPU,"P_mean",1,0)
-syst_corrDeDx_mean=systMass(predNominal_def,predCorrDeDxDown,predCorrDeDxUp,"extraction_Ih_mean",1,0)
-syst_corrP_mean=systMass(predNominal_def,predCorrPDown,predCorrPUp,"extraction_P_mean",1,0)
+predEtaNominal=allSet(predNominal_def,sizeRebinning,rebinning,"eta_nominal")
+predEtaD=allSet(predEtaD,sizeRebinning,rebinning,"eta_down")
+predEtaU=allSet(predEtaU,sizeRebinning,rebinning,"eta_up")
 
-syst_eta_binned=systMass(predNominal_def,predEtaD,predEtaU,"Eta",0,1,1)
-syst_ih_binned=systMass(predNominal_def,predIhD,predIhU,"Ih",0,1)
-syst_p_binned=systMass(predNominal_def,predPD,predPU,"P",0,1)
-syst_corrDeDx_binned=systMass(predNominal_def,predCorrDeDxDown,predCorrDeDxUp,"extraction_Ih",0,1)
-syst_corrP_binned=systMass(predNominal_def,predCorrPDown,predCorrPUp,"extraction_P",0,1)
+predIhNominal=allSet(predNominal_def,sizeRebinning,rebinning,"ih_nominal")
+predIhD=allSet(predIhD,sizeRebinning,rebinning,"ih_down")
+predIhU=allSet(predIhU,sizeRebinning,rebinning,"ih_up")
 
-syst_eta_binned_mean=systMass(predNominal_def,predEtaD,predEtaU,"Eta",1,1)
-syst_ih_binned_mean=systMass(predNominal_def,predIhD,predIhU,"Ih",1,1)
-syst_p_binned_mean=systMass(predNominal_def,predPD,predPU,"P",1,1)
-syst_corrDeDx_binned_mean=systMass(predNominal_def,predCorrDeDxDown,predCorrDeDxUp,"extraction_Ih_mean",1,1)
-syst_corrP_binned_mean=systMass(predNominal_def,predCorrPDown,predCorrPUp,"extraction_P_mean",1,1)
+predPNominal=allSet(predNominal_def,sizeRebinning,rebinning,"p_nominal")
+predPD=allSet(predPD,sizeRebinning,rebinning,"p_down")
+predPU=allSet(predPU,sizeRebinning,rebinning,"p_up")
 
-predFitDeDxPar1Down=allSet(predFitDeDxPar1Down,sizeRebinning,rebinning,"fitDeDx_par1_down")
-predFitDeDxPar1Up=allSet(predFitDeDxPar1Up,sizeRebinning,rebinning,"fitDeDx_par1_up")
-predFitDeDxPar2Down=allSet(predFitDeDxPar2Down,sizeRebinning,rebinning,"fitDeDx_par2_down")
-predFitDeDxPar2Up=allSet(predFitDeDxPar2Up,sizeRebinning,rebinning,"fitDeDx_par2_up")
-predFitPPar2Down=allSet(predFitPPar2Down,sizeRebinning,rebinning,"fitDeDx_par2_down")
-predFitPPar2Up=allSet(predFitPPar2Up,sizeRebinning,rebinning,"fitDeDx_par2_up")
-predFitPPar3Down=allSet(predFitPPar3Down,sizeRebinning,rebinning,"fitDeDx_par3_down")
-predFitPPar3Up=allSet(predFitPPar3Up,sizeRebinning,rebinning,"fitDeDx_par3_up")
+predCorrDeDxNominal=allSet(predNominal_def,sizeRebinning,rebinning,"corrdedx_nominal")
+predCorrDeDxDown=allSet(predCorrDeDxDown,sizeRebinning,rebinning,"corrdedx_down")
+predCorrDeDxUp=allSet(predCorrDeDxUp,sizeRebinning,rebinning,"corrdedx_up")
 
-predFitPNominal=allSet(predFitPNominal,sizeRebinning,rebinning,"fitP_nominal")
+predCorrPNominal=allSet(predNominal_def,sizeRebinning,rebinning,"corrP_nominal")
+predCorrPDown=allSet(predCorrPDown,sizeRebinning,rebinning,"corrP_down")
+predCorrPUp=allSet(predCorrPUp,sizeRebinning,rebinning,"corrP_up")
+
+predFitPNominal=allSet(predNominal_def,sizeRebinning,rebinning,"fitP_nominal")
 predFitPDown=allSet(predFitPDown,sizeRebinning,rebinning,"fitP_down")
 predFitPUp=allSet(predFitPUp,sizeRebinning,rebinning,"fitP_up")
 
-(syst_fitDeDx_par1, syst_fitDeDx_par1_mean, syst_fitDeDx_par1_binned, syst_fitDeDx_par1_binned_mean)=systMassAll(predNominal_def,predFitDeDxPar1Up,predFitDeDxPar1Up,"Fit_Ih_par1")
-(syst_fitDeDx_par2, syst_fitDeDx_par2_mean, syst_fitDeDx_par2_binned, syst_fitDeDx_par2_binned_mean)=systMassAll(predNominal_def,predFitDeDxPar2Down,predFitDeDxPar2Up,"Fit_Ih_par2")
-(syst_fitP_par2, syst_fitP_par2_mean, syst_fitP_par2_binned, syst_fitP_par2_binned_mean)=systMassAll(predNominal_def,predFitPPar2Down,predFitPPar2Up,"Fit_p_par2")
-(syst_fitP_par3, syst_fitP_par3_mean, syst_fitP_par3_binned, syst_fitP_par3_binned_mean)=systMassAll(predNominal_def,predFitPPar3Down,predFitPPar3Up,"Fit_p_par3")
-(syst_fitP, syst_fitP_mean, syst_fitP_binned, syst_fitP_binned_mean)=systMassAll(predFitPNominal,predFitPDown,predFitPUp,"Fit_p")
+predFitDeDxNominal=allSet(predNominal_def,sizeRebinning,rebinning,"fitDeDx_nominal")
+predFitDeDxDown=allSet(predFitDeDxDown,sizeRebinning,rebinning,"fitDeDx_down")
+predFitDeDxUp=allSet(predFitDeDxUp,sizeRebinning,rebinning,"fitDeDx_up")
 
+
+p1=0
+p0=1
+
+#2017
+
+#SR1
+if(year=='2017' and region=="90ias100"):
+    p1=0.00108083
+    p0=0.983476
+    labelRegion='SR1'
+
+#SR2
+if(year=='2017' and region=="99ias100"):
+    p1=0.00117178
+    p0=0.981479
+    labelRegion='SR2'
+
+#SR3
+if(year=='2017' and region=="999ias100"):
+    p1=0.000954989
+    p0=0.962746
+    labelRegion='SR3'
+
+#2018
+
+#SR1
+if(year=='2018' and region=="90ias100"):
+    p1=0.00121927
+    p0=0.964028
+    labelRegion='SR1'
+
+#SR2
+if(year=='2018' and region=="99ias100"):
+    p1=0.00125541
+    p0=0.96542
+    labelRegion='SR2'
+
+#SR3
+if(year=='2018' and region=="999ias100"):
+    p1=0.00121957
+    p0=0.963581
+    labelRegion='SR3'
+
+if(year=='2017'):
+    CMS_lumi.lumi_13TeV = "2017 - 41.5 fb^{-1}"
+
+if(year=='2018'):
+    CMS_lumi.lumi_13TeV = "2018 - 59.7 fb^{-1}"
+
+#SR90-100
+#p1=0.000829552762364
+#p0=1.00133861932
+#SR50-90
+#p1=0.00075768808706
+#p0=0.957471805183
+#SR999-100
+#p1=0.000954989
+#p0=0.962746
+
+
+predCorrectionBias = BiasCorrection(predNominal_def,p1,p0)
+
+(syst_eta, syst_eta_mean, syst_eta_binned, syst_eta_binned_mean)=systMassAll(predEtaNominal,predEtaD,predEtaU,"Eta")
+(syst_ih, syst_ih_mean, syst_ih_binned, syst_ih_binned_mean)=systMassAll(predIhNominal,predIhD,predIhU,"Ih")
+(syst_p, syst_p_mean, syst_p_binned, syst_p_binned_mean)=systMassAll(predPNominal,predPD,predPU,"P")
+
+(syst_corrDeDx, syst_corrDeDx_mean, syst_corrDeDx_binned, syst_corrDeDx_binned_mean)=systMassAll(predCorrDeDxNominal,predCorrDeDxDown,predCorrDeDxUp,"corrDeDx")
+(syst_corrP, syst_corrP_mean, syst_corrP_binned, syst_corrP_binned_mean)=systMassAll(predCorrPNominal,predCorrPDown,predCorrPUp,"corrP")
+
+(syst_fitP, syst_fitP_mean, syst_fitP_binned, syst_fitP_binned_mean)=systMassAll(predFitPNominal,predFitPDown,predFitPUp,"Fit_p")
+(syst_fitDeDx, syst_fitDeDx_mean, syst_fitDeDx_binned, syst_fitDeDx_binned_mean)=systMassAll(predFitDeDxNominal,predFitDeDxDown,predFitDeDxUp,"Fit_dedx_systMassAl")
+
+(syst_corrBias, syst_corrBias_mean, syst_corrBias_binned, syst_corrBias_binned_mean) = systMassAll(predNominal_def,predCorrectionBias,predCorrectionBias,"CorrectionBias")
 
 syst_stat.Write()
+syst_stat_binned.Write()
 syst_eta.Write()
 syst_ih.Write()
 syst_p.Write()
 syst_corrDeDx.Write()
 syst_corrP.Write()
+syst_fitDeDx.Write()
+syst_fitDeDx_binned.Write()
 
-syst_eta_mean.Write()
-syst_ih_mean.Write()
-syst_p_mean.Write()
-syst_corrDeDx_mean.Write()
-syst_corrP_mean.Write()
-
-
-listOfSyst=[syst_stat,syst_eta,syst_ih,syst_p,syst_corrDeDx,syst_corrP,syst_fitDeDx_par1,syst_fitDeDx_par2,syst_fitP]
-listOfSyst_mean=[syst_stat,syst_eta_mean,syst_ih_mean,syst_p_mean,syst_corrDeDx_mean,syst_corrP_mean]
-
+listOfSyst=[syst_stat,syst_eta,syst_ih,syst_p,syst_corrDeDx,syst_corrP,syst_fitDeDx,syst_fitP,syst_corrBias]
 sysTot=systTotal(listOfSyst)
-sysTot_mean=systTotal(listOfSyst_mean)
+sysTot.SetName("systTotal")
 sysTot.Write()
-sysTot_mean.Write()
-
 sysTot.SaveAs("sysTot.root")
 
-listOfSyst_binned=[syst_stat_binned,syst_eta_binned,syst_ih_binned,syst_p_binned,syst_corrDeDx_binned,syst_corrP_binned,syst_fitDeDx_par1_binned,syst_fitDeDx_par2_binned,syst_fitP_binned]
-listOfSyst_binned_mean=[syst_stat_binned,syst_eta_binned_mean,syst_ih_binned_mean,syst_p_binned_mean,syst_corrDeDx_binned_mean,syst_corrP_binned_mean]
-
+listOfSyst_binned=[syst_stat_binned,syst_eta_binned,syst_ih_binned,syst_p_binned,syst_corrDeDx_binned,syst_corrP_binned,syst_fitDeDx_binned,syst_fitP_binned]
 sysTot_binned=systTotal(listOfSyst_binned)
-sysTot_binned_mean=systTotal(listOfSyst_binned_mean)
+sysTot_binned.SetName("systTotalBinned")
+sysTot_binned.Write()
+sysTot_binned.SaveAs("sysTotBinned_"+year+"_"+region+".root")
 
-ihB=ifileNominal.Get("ih_eta_regionB_90_py")
-ihB_Down=ifileIhD.Get("ih_eta_regionB_90_py")
-ihB_Up=ifileIhU.Get("ih_eta_regionB_90_py")
-pC=ifileNominal.Get("eta_p_regionC_med_px")
-pC_Down=ifilePD.Get("eta_p_regionC_med_px")
-pC_Up=ifilePU.Get("eta_p_regionC_med_px")
-etaB=ifileNominal.Get("ih_eta_regionB_90_px")
-etaB_Down=ifileEtaD.Get("ih_eta_regionB_90_px")
-etaB_Up=ifileEtaU.Get("ih_eta_regionB_90_px")
+listOfSyst_binned=[syst_stat_binned,syst_eta_binned,syst_ih_binned,syst_p_binned,syst_corrDeDx_binned,syst_corrP_binned,syst_fitDeDx_binned,syst_fitP_binned,syst_corrBias_binned]
+sysTot_binned=systTotal(listOfSyst_binned)
 
 plotter(predNominal_def,predEtaD,predEtaU,"Nominal (20 bins)","Down (10 bins)","Up (40 bins)",oDir+"syst_Eta","plot_Eta")
 plotter(predNominal_def,predIhD,predIhU,"Nominal (100 bins)","Down (50 bins)","Up (200 bins)",oDir+"syst_Ih","plot_Ih")
 plotter(predNominal_def,predPD,predPU,"Nominal (500 bins)","Down (250 bins)","Up (1000 bins)",oDir+"syst_P","plot_P")
 plotter(predNominal_def,predCorrDeDxDown,predCorrDeDxUp,"Nominal","Down","Up",oDir+"syst_corrDeDx","plot_corrDeDx")
 plotter(predNominal_def,predCorrPDown,predCorrPUp,"Nominal","Down","Up",oDir+"syst_corrP","plot_corrP")
+plotter(predNominal_def,predCorrectionBias,predCorrectionBias,"Nominal","Down","Up",oDir+"syst_corrBias","plot_corrBias")
 
-plotter(predNominal_def,predFitDeDxPar2Down,predFitDeDxPar2Up,"Nominal Par2","Down Par2","Up Par2",oDir+"syst_FitDeDx_par2","plot_FitDeDx_par2")
-plotter(predNominal_def,predFitPPar2Down,predFitPPar2Up,"Nominal Par2","Down Par2","Up Par2",oDir+"syst_FitP_par2","plot_FitP_par2")
-plotter(predNominal_def,predFitPPar3Down,predFitPPar3Up,"Nominal Par3","Down Par3","Up Par3",oDir+"syst_FitP_par3","plot_FitP_par3")
-#plotter_(predNominal_def,predTrueTemplates,"Templates from B and C","Templates from D",oDir+"syst_Corr","plot_Corr")
-plotter(predNominal_def,predFitDeDxPar1Down,predFitDeDxPar1Up,"Nominal Par1","Down Par1","Up Par1",oDir+"syst_FitDeDx_par1","plot_FitDeDx_par1")
 plotter(predFitPNominal,predFitPDown,predFitPUp,"Nominal","Down","Up",oDir+"syst_FitP","plot_FitP")
+plotter(predFitDeDxNominal,predFitDeDxDown,predFitDeDxUp,"Nominal","Down","Up",oDir+"syst_FitDeDx","plot_FitDeDx")
 
 xtitle="Mass cut [GeV]"
-plotSummary(syst_stat,syst_eta,syst_ih,syst_p,syst_corrDeDx,syst_corrP,syst_fitDeDx_par1,syst_fitDeDx_par2,syst_fitP,sysTot,xtitle,outTitle)
+plotSummary(syst_stat,syst_eta,syst_ih,syst_p,syst_corrDeDx,syst_corrP,syst_fitDeDx,syst_fitP,syst_corrBias,sysTot,xtitle,outTitle,labelRegion)
+
 xtitle="Mass bin"
-plotSummary(syst_stat_binned,syst_eta_binned,syst_ih_binned,syst_p_binned,syst_corrDeDx_binned,syst_corrP_binned,syst_fitDeDx_par1_binned,syst_fitDeDx_par2_binned,syst_fitP_binned,sysTot_binned,xtitle,"binned_"+outTitle,1)
+plotSummary(syst_stat_binned,syst_eta_binned,syst_ih_binned,syst_p_binned,syst_corrDeDx_binned,syst_corrP_binned,syst_fitDeDx_binned,syst_fitP_binned,syst_corrBias_binned,sysTot_binned,xtitle,"binned_"+outTitle,labelRegion)
+
 
 ofileAllPred = TFile("massShapePred.root","RECREATE")
 ofileAllPred.cd()
 predNominal_def.Write()
-
+sysTot.Write()
+sysTot_binned.Write()
