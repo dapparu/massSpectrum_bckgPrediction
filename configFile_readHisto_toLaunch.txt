@@ -1,1 +1,1 @@
-/opt/sbg/cms/ui3_data1/dapparu/HSCP/Production/crab_Analysis_SingleMuon_Run2018_CodeVUnB_v1_v1      data2018        31aug_2018_FitMomDown_UnB_v1_v2/       200     3    1    4      4     2    1     0      0     1   0
+/opt/sbg/cms/ui3_data1/dapparu/HSCP/Production/crab_Analysis_SingleMuon_Run2017_CodeVUnB_v1_v1      data2017        test_2017_nominal_UnB_v1_v2/       200     3    1    4      4     2    1     0      0     1   1

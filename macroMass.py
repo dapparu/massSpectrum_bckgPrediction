@@ -74,11 +74,7 @@ def underflowAndOverflow(h,data=False):
 def binWidth(h1):
     res=h1.Clone()
     for i in range (0,h1.GetNbinsX()+1):
-        #if (h1.GetBinContent(i)==0) :
-        #    continue
-        #errRel = h1.GetBinError(i)/h1.GetBinContent(i)
         res.SetBinContent(i,h1.GetBinContent(i)/h1.GetBinWidth(i))
-        #res.SetBinError(i,h1.GetBinContent(i)*errRel)
         res.SetBinError(i,h1.GetBinError(i)/h1.GetBinWidth(i))
     return res
 
@@ -94,7 +90,6 @@ def ratioIntegral(h1,h2,systErr,upTo=-1):
         bornUp=h1.GetNbinsX()+1
     else:
         bornUp=h1.FindBin(upTo)
-    print 'bornUp: ', bornUp, h1.GetBinLowEdge(bornUp)
     for i in range(0,bornUp):
         e1=ROOT.Double(0.0)
         e2=ROOT.Double(0.0)
@@ -206,8 +201,8 @@ def testChi2with1(h,x=-1):
 
 a_=0
 b_=1
-year='2017_2018'
-#year='2017'
+#year='2017_2018'
+year='2017'
 #year='2018'
 #year='ttbarwjets'
 #year='wjets'
@@ -273,14 +268,15 @@ def main(argv):
     outputfile=''
     region=''
     regionSignal=''
+    odir=''
     try:
-        opts, args = getopt.getopt(argv,"hi:o:r:s",["ifile=","ofile=","region=","regionSignal="])
+        opts, args = getopt.getopt(argv,"hi:o:r:d",["ifile=","ofile=","region=","odir="])
     except getopt.GetoptError:
-        print 'test.py -i <inputfile> -o <outputfile> -r <region> -s <regionSignal>'
+        print 'test.py -i <inputfile> -o <outputfile> -r <region> -d <odir>'
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print 'test.py -i <inputfile> -o <outputfile> -r <region> -s <regionSignal>'
+            print 'test.py -i <inputfile> -o <outputfile> -r <region> -d <odir>'
             sys.exit()
         elif opt in ("-i", "--ifile"):
             inputfile = arg
@@ -288,14 +284,17 @@ def main(argv):
             outputfile = arg
         elif opt in ("-r", "--region"):
             region = arg
-        elif opt in ("-s", "--regionSignal"):
-            regionSignal = arg
+        elif opt in ("-d", "--odir"):
+            odir = arg
+            print odir
 
-    regionSignal=''
+    os.system('mkdir -p '+odir)
 
-    print 'Input file is "', inputfile
-    print 'Output file is "', outputfile
-    print 'Region is "', region
+    outputfile = odir+'/'+outputfile
+
+    print 'Input file is: ', inputfile
+    print 'Output file is: ', outputfile
+    print 'Region is: ', region
 
     #if(region=="90ias100") : blind=True
 
@@ -454,7 +453,7 @@ def main(argv):
     yearSyst=year
     if(year=="2017_2018"): yearSyst="2018"
 
-    ifileSyst=ROOT.TFile("sysTotBinned_"+yearSyst+"_"+regionSyst+".root")
+    ifileSyst=ROOT.TFile("systBckg/sysTotBinned_"+yearSyst+"_"+regionSyst+".root")
     histoOfSyst=ifileSyst.Get("systTotalBinned")
 
     ofilePredWithSyst=ROOT.TFile("predWithUpAndDown"+region+"_"+year+".root","RECREATE")
@@ -497,10 +496,10 @@ def main(argv):
     predU.Write()
 
 
-    h_syst_gl1600=ROOT.TFile("systSignal_10april/Gluino_M-1600/SR1_73p0/_sysTot.root").Get("c1_n5").GetPrimitive("")
-    h_syst_gl2000=ROOT.TFile("systSignal_10april/Gluino_M-2000/SR1_73p0/_sysTot.root").Get("c1_n9").GetPrimitive("")
-    h_syst_ppStau557=ROOT.TFile("systSignal_10april/ppStau_M-557/SR1_73p0/_sysTot.root").Get("c1_n11").GetPrimitive("")
-    h_syst_ppStau871=ROOT.TFile("systSignal_10april/ppStau_M-871/SR1_73p0/_sysTot.root").Get("c1_n14").GetPrimitive("")
+    h_syst_gl1600=ROOT.TFile("systSignal/Gluino_M-1600/SR1_73p0/_sysTot.root").Get("c1_n5").GetPrimitive("")
+    h_syst_gl2000=ROOT.TFile("systSignal/Gluino_M-2000/SR1_73p0/_sysTot.root").Get("c1_n9").GetPrimitive("")
+    h_syst_ppStau557=ROOT.TFile("systSignal/ppStau_M-557/SR1_73p0/_sysTot.root").Get("c1_n11").GetPrimitive("")
+    h_syst_ppStau871=ROOT.TFile("systSignal/ppStau_M-871/SR1_73p0/_sysTot.root").Get("c1_n14").GetPrimitive("")
 
     m_Gl1600=addHSystSignal(m_Gl1600,h_syst_gl1600)    
     m_Gl2000=addHSystSignal(m_Gl2000,h_syst_gl2000)  
@@ -924,15 +923,16 @@ if __name__ == "__main__":
     a_=a
     b_=b
     print region_
-    fichier = open("param_fit_"+year+"_"+reg+".txt", "w")
+    odir=sys.argv[8]
+    fichier = open(odir+"/param_fit_"+year+"_"+reg+".txt", "w")
     fichier.write("{"+year+"}")
     fichier.write("\n{"+region_+"}")
     fichier.write("\n{chi2}\t{ndof}\t{slope}\t{error}\t{y-intercept}\t{error}")
     fichier.write("\n"+str(chi2)+"\t"+str(ndof)+"\t"+str(a)+"\t"+str(aerr)+"\t"+str(b)+"\t"+str(berr))
     fichier.write("\n{obs}\t{pred}")
     fichier.write("\n"+str(obs_m300)+"\t"+str(pred_m300))
-    saveLaTeXTableFit("param_fit_"+year+"_"+reg+"_RBF.tex",chi2,ndof,a,aerr,b,berr)
-    saveLaTeXTableNumObsPred("numObsPred_"+year+"_"+reg+"_RBF.tex",obs_m300,pred_m300,err_obs_m300,err_pred_m300,reg,1)
+    saveLaTeXTableFit(odir+"/param_fit_"+year+"_"+reg+"_RBF.tex",chi2,ndof,a,aerr,b,berr)
+    saveLaTeXTableNumObsPred(odir+"/numObsPred_"+year+"_"+reg+"_RBF.tex",obs_m300,pred_m300,err_obs_m300,err_pred_m300,reg,1)
     (chi2,ndof,a,b,aerr,berr,region_,reg,obs_m300,pred_m300,err_obs_m300,err_pred_m300)=main(sys.argv[1:])
     fichier.write("\n{"+region_+"}")
     fichier.write("\n{chi2}\t{ndof}\t{slope}\t{error}\t{y-intercept}\t{error}")
@@ -940,6 +940,6 @@ if __name__ == "__main__":
     fichier.write("\n{obs}\t{pred}")
     fichier.write("\n"+str(obs_m300)+"\t"+str(pred_m300))
     fichier.close()
-    saveLaTeXTableFit("param_fit_"+year+"_"+reg+"_SR.tex",chi2,ndof,a,aerr,b,berr)
-    saveLaTeXTableNumObsPred("numObsPred_"+year+"_"+reg+"_SR.tex",obs_m300,pred_m300,err_obs_m300,err_pred_m300,reg,2)
+    saveLaTeXTableFit(odir+"/param_fit_"+year+"_"+reg+"_SR.tex",chi2,ndof,a,aerr,b,berr)
+    saveLaTeXTableNumObsPred(odir+"/numObsPred_"+year+"_"+reg+"_SR.tex",obs_m300,pred_m300,err_obs_m300,err_pred_m300,reg,2)
 
